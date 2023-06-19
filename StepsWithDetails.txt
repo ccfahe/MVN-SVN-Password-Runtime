@@ -1,0 +1,104 @@
+/home/rathores/helm_maven/mvn/apache-maven-3.8.5/bin/mvn -DskipTests=true -Psetup-autodeploy -Denvironment=devfuture package
+/home/rathores/helm_maven/mvn/apache-maven-3.8.5/bin/mvn -DskipTests=true -Phelm clean package
+
+Solution 1:setting.xml add server of svn
+
+    <server>
+        <id>url_id</id>
+        <username>username</username>
+        <password><password>></password>
+    </server>
+
+
+    Solution 1 partB:More encryption(Optional)
+
+            https://stackoverflow.com/questions/1255593/externalising-scm-credentials-with-maven
+            https://stackoverflow.com/questions/46661480/how-to-secure-and-encrypt-setting-xml-paswords-file-in-maven
+
+            A.Encrypt password(optional)
+
+                    /home/rathores/helm_maven/mvn/apache-maven-3.8.5/bin/mvn --encrypt-password yourpassword
+                    {CiUw9a2e/IsH1jWq8lV3TJkHsPQ1VwuzQAsIai4gRaw=}
+
+                    <server>
+                        <id>configsvn.magenta.at</id>
+                        <username>rathores</username>
+                        <password>{CiUw9a2e/IsH1jWq8lV3TJkHsPQ1VwuzQAsIai4gRaw=}</password>
+                    </server>
+
+            B.High level
+                    /home/rathores/helm_maven/mvn/apache-maven-3.8.5/bin/mvn --encrypt-master-password yourpassword
+                    /home/rathores/.m2/settings-security.xml
+
+                    <settingsSecurity>
+                            <master>{wf345sdfsdfasdaddf4343+xA=}</master>
+                    </settingsSecurity>
+
+
+Solution 2:What we are looking for(Not tested)
+
+
+        https://stackoverflow.com/questions/11340894/is-there-a-way-to-capture-user-input-in-maven-and-assign-it-to-a-maven-property
+        https://www.dcepler.net/post/hiding-password-input-in-ant/
+
+<plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-antrun-plugin</artifactId>
+      <version>3.0.0</version>
+      <executions>
+        <execution>
+          <id>svn-credentials</id>
+          <phase>initialize</phase>
+          <configuration>
+            <target>
+              <exec executable="sh">
+                <arg line="-c 'stty -echo -isig &lt; /dev/tty'"/>
+              </exec>
+              <input message="Enter SVN Password:" addproperty="svn.password"/>
+              <exec executable="sh">
+                <arg line="-c 'stty echo isig &lt; /dev/tty'"/>
+              </exec>
+            </target>
+          </configuration>
+          <goals>
+            <goal>run</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+
+
+
+        <!-- Configure maven-scm-plugin for SVN checkout -->
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-scm-plugin</artifactId>
+      <version>1.12.0</version>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.maven.scm</groupId>
+          <artifactId>maven-scm-provider-svnexe</artifactId>
+          <version>1.12.0</version>
+        </dependency>
+      </dependencies>
+      <configuration>
+        <providerImplementations>
+          <svn>svn</svn>
+        </providerImplementations>
+        <connectionUrl>svn://svn.example.com/repo/trunk</connectionUrl>
+        <checkoutDirectory>${project.build.directory}/svn-checkout</checkoutDirectory>
+        <username>your-svn-username</username>
+        <password>${svn.password}</password>
+      </configuration>
+      <executions>
+        <execution>
+          <id>svn-checkout</id>
+          <phase>initialize</phase>
+          <goals>
+            <goal>checkout</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
